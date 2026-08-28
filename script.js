@@ -23,93 +23,217 @@
         uniform vec2 iResolution;
         uniform float iTime;
 
-        const float overallSpeed = 0.2;
-        const float gridSmoothWidth = 0.015;
-        const float axisWidth = 0.05;
-        const float majorLineWidth = 0.025;
-        const float minorLineWidth = 0.0125;
-        const float majorLineFrequency = 5.0;
-        const float minorLineFrequency = 1.0;
-        const vec4 gridColor = vec4(0.5);
-        const float scale = 5.0;
-        const vec4 lineColor = vec4(0.8, 0.64, 0.45, 1.0);
-        const float minLineWidth = 0.01;
-        const float maxLineWidth = 0.2;
-        const float lineSpeed = 1.0 * overallSpeed;
-        const float lineAmplitude = 1.0;
-        const float lineFrequency = 0.2;
-        const float warpSpeed = 0.2 * overallSpeed;
-        const float warpFrequency = 0.5;
-        const float warpAmplitude = 1.0;
-        const float offsetFrequency = 0.5;
-        const float offsetSpeed = 1.33 * overallSpeed;
-        const float minOffsetSpread = 0.6;
-        const float maxOffsetSpread = 2.0;
-        const int linesPerGroup = 16;
+        const vec3 backgroundDark = vec3(0.020, 0.000, 0.031);
+        const vec3 backgroundPurple = vec3(0.027, 0.000, 0.059);
+        const vec3 deepPurple = vec3(0.427, 0.157, 0.851);
+        const vec3 primaryPurple = vec3(0.545, 0.361, 0.965);
+        const vec3 brightViolet = vec3(0.659, 0.333, 0.969);
+        const vec3 magentaAccent = vec3(0.851, 0.275, 0.937);
+        const vec3 gridPurple = vec3(0.180, 0.130, 0.300);
 
-        #define drawCircle(pos, radius, coord) smoothstep(radius + gridSmoothWidth, radius, length(coord - (pos)))
-        #define drawSmoothLine(pos, halfWidth, t) smoothstep(halfWidth, 0.0, abs(pos - (t)))
-        #define drawCrispLine(pos, halfWidth, t) smoothstep(halfWidth + gridSmoothWidth, halfWidth, abs(pos - (t)))
-        #define drawPeriodicLine(freq, width, t) drawCrispLine(freq / 2.0, width, abs(mod(t, freq) - (freq) / 2.0))
-
-        float drawGridLines(float axis) {
-            return drawCrispLine(0.0, axisWidth, axis)
-                + drawPeriodicLine(majorLineFrequency, majorLineWidth, axis)
-                + drawPeriodicLine(minorLineFrequency, minorLineWidth, axis);
+        float hash21(vec2 value) {
+            value = fract(value * vec2(123.34, 456.21));
+            value += dot(value, value + 45.32);
+            return fract(value.x * value.y);
         }
 
-        float drawGrid(vec2 space) {
-            return min(1.0, drawGridLines(space.x) + drawGridLines(space.y));
+        float segmentDistance(vec2 point, vec2 start, vec2 end) {
+            vec2 pointOffset = point - start;
+            vec2 segment = end - start;
+            float projection = clamp(
+                dot(pointOffset, segment) / max(dot(segment, segment), 0.0001),
+                0.0,
+                1.0
+            );
+            return length(pointOffset - segment * projection);
         }
 
-        float random(float t) {
-            return (cos(t) + cos(t * 1.3 + 1.3) + cos(t * 1.4 + 1.4)) / 3.0;
+        float routeHeight(vec2 cell, float seed) {
+            float level = floor(hash21(cell + vec2(seed * 3.17, seed * 7.31)) * 3.0);
+            return (level + 0.5) / 3.0;
         }
 
-        float getPlasmaY(float x, float horizontalFade, float offset) {
-            return random(x * lineFrequency + iTime * lineSpeed) * horizontalFade * lineAmplitude + offset;
+        vec3 circuitLayer(
+            vec2 uv,
+            float scale,
+            float driftSpeed,
+            float seed,
+            float baseWidth
+        ) {
+            float aspect = iResolution.x / iResolution.y;
+            vec2 circuitPosition = vec2(uv.x * aspect, uv.y) * scale;
+            circuitPosition.x += iTime * driftSpeed + seed * 1.73;
+            circuitPosition.y += iTime * driftSpeed * 0.12 + seed * 2.31;
+
+            vec2 cell = floor(circuitPosition);
+            vec2 localPosition = fract(circuitPosition);
+
+            float startHeight = routeHeight(cell, seed);
+            float endHeight = routeHeight(cell + vec2(1.0, 0.0), seed);
+            float widthVariation = mix(
+                0.72,
+                1.28,
+                hash21(cell + vec2(seed * 5.13, seed * 1.91))
+            );
+            float traceWidth = baseWidth * widthVariation;
+            float antialiasWidth = max(scale / iResolution.y * 1.5, 0.006);
+
+            float horizontalTrace = segmentDistance(
+                localPosition,
+                vec2(0.0, startHeight),
+                vec2(1.0, startHeight)
+            );
+            float verticalTurn = segmentDistance(
+                localPosition,
+                vec2(1.0, startHeight),
+                vec2(1.0, endHeight)
+            );
+            float traceDistance = min(horizontalTrace, verticalTurn);
+
+            float branchGate = step(
+                0.68,
+                hash21(cell + vec2(seed * 2.41 + 8.0, seed * 4.73 + 3.0))
+            );
+            float branchX = mix(
+                0.30,
+                0.70,
+                hash21(cell + vec2(seed * 6.11 + 2.0, 17.0))
+            );
+            float branchDirection = mix(
+                -1.0,
+                1.0,
+                step(0.5, hash21(cell + vec2(31.0, seed * 2.83)))
+            );
+            float branchLength = mix(
+                0.16,
+                0.34,
+                hash21(cell + vec2(seed * 9.07, 43.0))
+            );
+            vec2 branchStart = vec2(branchX, startHeight);
+            vec2 branchEnd = vec2(
+                branchX,
+                clamp(startHeight + branchDirection * branchLength, 0.10, 0.90)
+            );
+            float branchTrace = segmentDistance(localPosition, branchStart, branchEnd);
+            traceDistance = min(
+                traceDistance,
+                mix(10.0, branchTrace, branchGate)
+            );
+
+            float trace = 1.0 - smoothstep(
+                traceWidth,
+                traceWidth + antialiasWidth,
+                traceDistance
+            );
+            trace *= mix(
+                0.55,
+                1.0,
+                hash21(cell + vec2(seed * 7.37, seed * 3.59))
+            );
+
+            float nodeRadius = traceWidth * 2.8;
+            float junctionGate = step(
+                0.76,
+                hash21(cell + vec2(seed * 11.0 + 5.0, 23.0))
+            );
+            vec2 junctionPosition = vec2(0.52, startHeight);
+            float junctionNode = 1.0 - smoothstep(
+                nodeRadius,
+                nodeRadius + antialiasWidth * 1.5,
+                length(localPosition - junctionPosition)
+            );
+            float branchNode = 1.0 - smoothstep(
+                nodeRadius,
+                nodeRadius + antialiasWidth * 1.5,
+                length(localPosition - branchEnd)
+            );
+            float node = max(
+                junctionNode * junctionGate,
+                branchNode * branchGate
+            );
+            node *= 0.72 + 0.28 * sin(
+                iTime * 1.1 +
+                hash21(cell + vec2(seed * 13.0, 71.0)) * 6.28318
+            );
+
+            float pulseGate = step(
+                0.74,
+                hash21(vec2(cell.y + seed * 5.0, seed * 19.0))
+            );
+            float pulsePhase = fract(
+                circuitPosition.x * 0.18 -
+                iTime * (0.32 + driftSpeed * 2.0) +
+                hash21(vec2(cell.y, seed * 29.0))
+            );
+            float pulseEnvelope = 1.0 - smoothstep(
+                0.025,
+                0.095,
+                abs(pulsePhase - 0.5)
+            );
+            float pulse = trace * pulseGate * pulseEnvelope;
+
+            return vec3(trace, node, pulse);
+        }
+
+        float technicalGrid(vec2 uv) {
+            float aspect = iResolution.x / iResolution.y;
+            vec2 gridPosition = vec2(uv.x * aspect, uv.y) * 24.0;
+            vec2 gridCell = fract(gridPosition);
+            vec2 edgeDistance = min(gridCell, 1.0 - gridCell);
+            float nearestEdge = min(edgeDistance.x, edgeDistance.y);
+            float pixelWidth = 24.0 / iResolution.y;
+            return 1.0 - smoothstep(
+                pixelWidth,
+                pixelWidth * 2.4,
+                nearestEdge
+            );
         }
 
         void main() {
-            vec2 fragCoord = gl_FragCoord.xy;
-            vec4 fragColor;
-            vec2 uv = fragCoord.xy / iResolution.xy;
-            vec2 space = (fragCoord - iResolution.xy / 2.0) / iResolution.x * 2.0 * scale;
+            vec2 uv = gl_FragCoord.xy / iResolution.xy;
 
-            float horizontalFade = 1.0 - (cos(uv.x * 6.28) * 0.5 + 0.5);
-            float verticalFade = 1.0 - (cos(uv.y * 6.28) * 0.5 + 0.5);
+            float rightEmphasis = smoothstep(0.28, 0.82, uv.x);
+            float centerEmphasis = 0.72 + 0.28 * (
+                1.0 - abs(uv.y - 0.5) * 2.0
+            );
+            float circuitVisibility = mix(0.20, 1.0, rightEmphasis) * centerEmphasis;
 
-            space.y += random(space.x * warpFrequency + iTime * warpSpeed) * warpAmplitude * (0.5 + horizontalFade);
-            space.x += random(space.y * warpFrequency + iTime * warpSpeed + 2.0) * warpAmplitude * horizontalFade;
+            vec3 color = mix(
+                backgroundDark,
+                backgroundPurple,
+                rightEmphasis * 0.72
+            );
 
-            vec4 lines = vec4(0.0);
-            vec4 bgColor1 = vec4(0.08, 0.06, 0.03, 1.0);
-            vec4 bgColor2 = vec4(0.3, 0.2, 0.08, 1.0);
+            float grid = technicalGrid(uv);
+            color += gridPurple * grid * mix(0.012, 0.035, rightEmphasis);
 
-            for(int l = 0; l < linesPerGroup; l++) {
-                float normalizedLineIndex = float(l) / float(linesPerGroup);
-                float offsetTime = iTime * offsetSpeed;
-                float offsetPosition = float(l) + space.x * offsetFrequency;
-                float rand = random(offsetPosition + offsetTime) * 0.5 + 0.5;
-                float halfWidth = mix(minLineWidth, maxLineWidth, rand * horizontalFade) / 2.0;
-                float offset = random(offsetPosition + offsetTime * (1.0 + normalizedLineIndex)) * mix(minOffsetSpread, maxOffsetSpread, horizontalFade);
-                float linePosition = getPlasmaY(space.x, horizontalFade, offset);
-                float line = drawSmoothLine(linePosition, halfWidth, space.y) / 2.0 + drawCrispLine(linePosition, halfWidth * 0.15, space.y);
+            vec3 backgroundLayer = circuitLayer(uv, 10.5, 0.024, 1.7, 0.012);
+            vec3 middleLayer = circuitLayer(uv, 7.2, 0.041, 5.3, 0.018);
+            vec3 foregroundLayer = circuitLayer(uv, 4.8, 0.064, 9.1, 0.023);
 
-                float circleX = mod(float(l) + iTime * lineSpeed, 25.0) - 12.0;
-                vec2 circlePosition = vec2(circleX, getPlasmaY(circleX, horizontalFade, offset));
-                float circle = drawCircle(circlePosition, 0.01, space) * 4.0;
+            color += deepPurple * backgroundLayer.x * 0.10 * circuitVisibility;
+            color += primaryPurple * middleLayer.x * 0.18 * circuitVisibility;
+            color += brightViolet * foregroundLayer.x * 0.25 * circuitVisibility;
 
-                line = line + circle;
-                lines += line * lineColor * rand;
-            }
+            color += primaryPurple * backgroundLayer.y * 0.16 * circuitVisibility;
+            color += brightViolet * middleLayer.y * 0.30 * circuitVisibility;
+            color += magentaAccent * foregroundLayer.y * 0.42 * circuitVisibility;
 
-            fragColor = mix(bgColor1, bgColor2, uv.x);
-            fragColor *= verticalFade;
-            fragColor.a = 1.0;
-            fragColor += lines;
+            float signalPulse =
+                backgroundLayer.z * 0.22 +
+                middleLayer.z * 0.42 +
+                foregroundLayer.z * 0.68;
+            color += magentaAccent * signalPulse * circuitVisibility;
 
-            gl_FragColor = fragColor;
+            vec2 vignettePosition = (uv - 0.5) * vec2(0.85, 1.0);
+            float vignette = 1.0 - smoothstep(
+                0.34,
+                0.82,
+                length(vignettePosition)
+            );
+            color *= mix(0.72, 1.0, vignette);
+
+            gl_FragColor = vec4(color, 1.0);
         }
     `;
 
