@@ -415,9 +415,9 @@
 const textElement = document.querySelector(".typing-text");
 const words = [
     "Developer { } ",
-    "AI Explorer <_> ",       // Coding brackets
-    "Problem Solver // ",     // Comment slashes
-    "Innovator [~] "          // Terminal vibe
+    "Vibe Coder <_> ",       // Coding brackets
+    "Tech Enthusiast // ",     // Comment slashes
+    "Gamer [~] "          // Terminal vibe
 ];
 let wordIndex = 0;
 let charIndex = 0;
