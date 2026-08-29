@@ -321,7 +321,7 @@
 
 // ===== GOOEY TEXT LOADING ANIMATION =====
 (function () {
-    const texts = ["The Dev", "Jonard Marfa"];
+    const texts = ["Hello", "Jonard Marfa"];
     const morphTime = 1.5; // seconds for morph
     const cooldownTime = 1; // seconds to wait before next morph
     const totalDuration = 3840; // total loading time in ms
