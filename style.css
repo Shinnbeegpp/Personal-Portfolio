@@ -1098,6 +1098,10 @@ h1 {
     transform: translateY(-2px);
 }
 
+#contactForm textarea {
+    resize: none;
+}
+
 /* --- FOOTER --- */
 footer {
     padding: 30px;

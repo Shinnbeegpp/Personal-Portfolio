@@ -566,6 +566,8 @@ skillItems.forEach(item => {
 });
 
 
+let statusMessageTimeout;
+
 document.getElementById('contactForm').addEventListener('submit', async (e) => {
     e.preventDefault();  // stop redirect
 
@@ -573,6 +575,8 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
     const submitBtn = form.querySelector('button[type="submit"]');
     const statusMsg = document.getElementById('statusMsg');
 
+    clearTimeout(statusMessageTimeout);
+    statusMsg.textContent = '';
     submitBtn.textContent = 'SENDING...';
     submitBtn.disabled = true;
 
@@ -580,6 +584,9 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
 
     if (!formEndpoint || formEndpoint === 'paste your link here') {
         statusMsg.textContent = 'Add your form endpoint to enable contact submissions.';
+        statusMessageTimeout = setTimeout(() => {
+            statusMsg.textContent = '';
+        }, 5000);
         submitBtn.textContent = 'Send Message';
         submitBtn.disabled = false;
         return;
@@ -593,6 +600,7 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
         });
 
         if (res.ok) {
+            statusMsg.textContent = 'Message sent successfully!';
             form.reset();
         } else {
             statusMsg.textContent = "Something went wrong ❌ Try again.";
@@ -600,6 +608,10 @@ document.getElementById('contactForm').addEventListener('submit', async (e) => {
     } catch (error) {
         statusMsg.textContent = "Network error ❌";
     }
+
+    statusMessageTimeout = setTimeout(() => {
+        statusMsg.textContent = '';
+    }, 5000);
 
     submitBtn.textContent = 'Send Message';
     submitBtn.disabled = false;
