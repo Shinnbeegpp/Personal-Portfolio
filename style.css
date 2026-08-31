@@ -1454,12 +1454,19 @@ footer {
         width: 100%;
         max-width: 100%;
         min-width: 0;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        padding: 18px 16px;
+        overflow-x: hidden;
+        font-size: 0.78rem;
+        line-height: 1.55;
     }
 
     .code-content pre {
+        width: 100%;
         max-width: 100%;
+        min-width: 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
 }
