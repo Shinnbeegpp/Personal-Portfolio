@@ -654,24 +654,43 @@ h1 {
     font-family: 'Fira Code', monospace;
     font-size: 0.95rem;
     line-height: 1.6;
-    color: #fff;
+    color: #f8f8f2;
 }
 
-.keyword {
+.code-content pre {
+    font-family: 'Fira Code', monospace;
+    font-variant-ligatures: contextual;
+}
+
+.code-content pre span {
+    font-family: inherit;
+}
+
+.code-content .keyword {
     color: #ff79c6;
+    font-weight: 600;
 }
 
-.class-name {
+.code-content .code-identifier {
     color: #8be9fd;
-    font-style: italic;
 }
 
-.string {
+.code-content .code-property {
+    color: #bd93f9;
+}
+
+.code-content .string {
     color: #f1fa8c;
 }
 
-.type {
-    color: #8B5CF6;
+.code-content .code-boolean {
+    color: #ffb86c;
+    font-weight: 600;
+}
+
+.code-content .code-operator,
+.code-content .code-punctuation {
+    color: #f8f8f2;
 }
 
 /* --- PROJECTS SECTION --- */
@@ -1455,18 +1474,17 @@ footer {
         max-width: 100%;
         min-width: 0;
         padding: 18px 16px;
-        overflow-x: hidden;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
         font-size: 0.78rem;
         line-height: 1.55;
     }
 
     .code-content pre {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        width: max-content;
+        min-width: 100%;
+        max-width: none;
+        white-space: pre;
     }
 
 }
