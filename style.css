@@ -1446,6 +1446,20 @@ footer {
 
     .code-window {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .code-content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .code-content pre {
+        max-width: 100%;
     }
 
 }
